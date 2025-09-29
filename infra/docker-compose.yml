@@ -1,0 +1,85 @@
+# Docker Compose for local development
+# This file brings up a minimal development stack:
+# - Zookeeper (required by Kafka)
+# - Kafka (Confluent images for simplicity)
+# - Postgres (primary datastore)
+# - Grafana (dashboarding pointing at Postgres later)
+#
+# Notes:
+# - This compose is intentionally simple and for local/dev use only.
+# - Do NOT use these settings in production: replication-factor=1, no TLS, no auth.
+# - We'll keep comments near each service explaining why it's here and how to connect.
+
+version: '3.8'
+services:
+  # Zookeeper: Kafka's coordination service
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.1
+    container_name: rtmh_zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 2181:2181
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo srvr | nc localhost 2181 | grep Mode"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Kafka: message bus (ingestion & buffering)
+  kafka:
+    image: confluentinc/cp-kafka:7.4.1
+    container_name: rtmh_kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - 9092:9092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      # Expose listeners for internal cluster name and host-accessible address
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    healthcheck:
+      test: ["CMD", "bash", "-c", "kafka-broker-api-versions --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Postgres: primary relational datastore for incidents/aggregates
+  postgres:
+    image: postgres:15
+    container_name: rtmh_postgres
+    environment:
+      POSTGRES_DB: rt_monitoring
+      POSTGRES_USER: rtuser
+      POSTGRES_PASSWORD: rtpass
+    ports:
+      - 5432:5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Grafana: visualization UI (we'll configure data source later to point to Postgres)
+  grafana:
+    image: grafana/grafana:10.0.0
+    container_name: rtmh_grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - postgres
+    ports:
+      - 3000:3000
+    volumes:
+      - grafana_storage:/var/lib/grafana
+
+volumes:
+  pgdata:
+  grafana_storage:
