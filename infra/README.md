@@ -18,7 +18,12 @@ Step-by-step (how to run locally):
 
    ```bash
    # from project root
-   docker compose -f infra/docker-compose.yml up -d
+   docker-compose -f infra/docker-compose.yml up -d
+   ```
+   and to stop it run
+   ```bash
+   # from project root
+   docker-compose -f infra/docker-compose.yml stop
    ```
 
 3) Verify services
