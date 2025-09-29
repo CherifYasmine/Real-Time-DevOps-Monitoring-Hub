@@ -1,0 +1,22 @@
+{
+  "name": "rtmh-producer",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "NODE_ENV=development nodemon src/index.js",
+    "test": "jest --runInBand"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2",
+    "express": "^5.1.0",
+    "jest": "^30.2.0",
+    "kafkajs": "^2.2.4",
+    "pino": "^9.12.0",
+    "supertest": "^7.1.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
