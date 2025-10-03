@@ -94,6 +94,8 @@ Access Grafana at http://localhost:3000 (admin/admin) → Dashboard: `RT Monitor
 - Recent events (last 20)
 - Topic overview (counts + first/last timestamps)
 
+![alt text](image.png)
+
 ### 🧪 Testing the System
 
 ```bash
