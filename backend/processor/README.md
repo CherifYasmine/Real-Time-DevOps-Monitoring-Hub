@@ -62,7 +62,7 @@ Real-time processor that consumes messages from Kafka topics and computes slidin
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `KAFKA_BROKERS` | `localhost:9092` | Comma-separated Kafka broker addresses |
+| `KAFKA_BROKERS` | `localhost:29092` | Comma-separated Kafka broker addresses |
 | `POSTGRES_URL` | - | Postgres connection string |
 | `WINDOW_SIZE_MS` | `60000` | Sliding window size in milliseconds |
 | `ERROR_RATE_THRESHOLD` | `0.05` | Error rate threshold (0.05 = 5%) |
