@@ -59,9 +59,7 @@
    done
    
    # Send metrics
-   curl -X POST http://localhost:4000/metrics \
-     -H "Content-Type: application/json" \
-     -d '{"value":{"cpu":0.85,"memory":0.72,"requests_per_sec":150}}'
+   curl -s -X POST http://localhost:4000/metrics -H "Content-Type: application/json" -d '{"value": {"response_time": 850, "endpoint": "/api/orders", "status_code": 500}}'
    
    # Send events
    curl -X POST http://localhost:4000/events \

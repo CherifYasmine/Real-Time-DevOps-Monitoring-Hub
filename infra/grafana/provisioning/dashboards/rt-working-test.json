@@ -1,0 +1,178 @@
+{
+  "id": null,
+  "title": "RT Monitoring - Logs, Metrics & Events",
+  "uid": "rt-working-dash",
+  "version": 0,
+  "refresh": "5s",
+  "templating": {
+    "list": [
+      {
+        "name": "limit",
+        "type": "constant",
+        "label": "Row Limit",
+        "query": "50",
+        "current": { "selected": true, "text": "50", "value": "50" },
+        "hide": 0
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Total Logs Count",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 0},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
+          "rawSql": "SELECT COUNT(*) as value FROM raw_events WHERE topic = 'rtmh.logs'",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "fixed", "fixedColor": "blue"},
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Total Metrics Count",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 0},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
+          "rawSql": "SELECT COUNT(*) as value FROM raw_events WHERE topic = 'rtmh.metrics'",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "fixed", "fixedColor": "green"},
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Total Events Count",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 8, "x": 16, "y": 0},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
+          "rawSql": "SELECT COUNT(*) as value FROM raw_events WHERE topic = 'rtmh.events'",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "fixed", "fixedColor": "orange"},
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Log Levels Breakdown",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 4},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
+          "rawSql": "SELECT data->>'level' as level, COUNT(*) as count FROM raw_events WHERE topic = 'rtmh.logs' GROUP BY data->>'level' ORDER BY count DESC",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+  "id": 5,
+  "title": "Recent Logs (${limit})",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 16, "x": 12, "y": 4},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
+          "rawSql": "SELECT created_at, data->>'level' as level, data->>'msg' as message, data->>'service' as service FROM raw_events WHERE topic = 'rtmh.logs' ORDER BY created_at DESC LIMIT ${limit}",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+  "id": 6,
+  "title": "Recent Metrics (${limit})",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
+          "rawSql": "SELECT created_at, data->>'response_time' as response_time, data->>'status_code' as status_code, data->>'endpoint' as endpoint FROM raw_events WHERE topic = 'rtmh.metrics' ORDER BY created_at DESC LIMIT ${limit}",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+  "id": 7,
+  "title": "Recent Events (${limit})",
+      "type": "table",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
+          "rawSql": "SELECT created_at, data->>'type' AS type, data->>'service' AS service, data->>'environment' AS environment, data->>'message' AS message FROM raw_events WHERE topic = 'rtmh.events' ORDER BY created_at DESC LIMIT ${limit}",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "All Topics Overview",
+      "type": "table", 
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
+          "rawSql": "SELECT topic, COUNT(*) as total_events, MIN(created_at) as first_event, MAX(created_at) as latest_event FROM raw_events GROUP BY topic ORDER BY total_events DESC",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Logs Explorer (Last 6h, max 500)",
+      "type": "table",
+      "gridPos": {"h": 10, "w": 24, "x": 0, "y": 28},
+      "targets": [
+        {
+          "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
+          "rawSql": "SELECT created_at, data->>'level' as level, data->>'service' as service, data->>'host' as host, data->>'msg' as message FROM raw_events WHERE topic = 'rtmh.logs' AND created_at BETWEEN $__timeFrom() AND $__timeTo() ORDER BY created_at DESC LIMIT 500",
+          "format": "table",
+          "rawQuery": true,
+          "refId": "A"
+        }
+      ]
+    }
+  ]
+}

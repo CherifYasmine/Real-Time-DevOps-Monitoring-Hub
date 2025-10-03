@@ -67,19 +67,21 @@ services:
       timeout: 5s
       retries: 5
 
-  # Grafana: visualization UI (we'll configure data source later to point to Postgres)
+  # Grafana: visualization UI with auto-provisioned datasource and dashboards
   grafana:
     image: grafana/grafana:10.0.0
     container_name: rtmh_grafana
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_INSTALL_PLUGINS: ""
     depends_on:
       - postgres
     ports:
       - 3000:3000
     volumes:
       - grafana_storage:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
 
 volumes:
   pgdata:

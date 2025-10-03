@@ -1,0 +1,22 @@
+# Grafana datasource provisioning configuration
+# This file automatically configures the Postgres datasource when Grafana starts
+
+apiVersion: 1
+
+datasources:
+  - name: rt_monitoring
+    type: postgres
+    uid: rt-monitoring-datasource
+    access: proxy
+    url: rtmh_postgres:5432
+    database: rt_monitoring
+    user: rtuser
+    secureJsonData:
+      password: rtpass
+    jsonData:
+      sslmode: disable
+      postgresVersion: 1500  # Postgres 15.x
+      timescaledb: false
+    isDefault: true
+    version: 1
+    editable: true

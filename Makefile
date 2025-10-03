@@ -32,3 +32,12 @@ infra-smoke:
 	@echo "Zookeeper (2181):" && nc -zv localhost 2181 || true
 	@echo "Postgres (5432):" && nc -zv localhost 5432 || true
 	@echo "Grafana (3000):" && nc -zv localhost 3000 || true
+
+restart-grafana:
+	docker restart rtmh_grafana
+
+start-producer:
+	cd backend/producer && npm start
+
+start-processor:
+	cd backend/processor && npm start
