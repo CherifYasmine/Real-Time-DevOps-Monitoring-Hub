@@ -7,6 +7,16 @@
   "templating": {
     "list": [
       {
+        "name": "project",
+        "type": "query",
+        "label": "Project",
+        "datasource": { "type": "postgres", "uid": "rt-monitoring-datasource" },
+        "query": "SELECT DISTINCT project FROM raw_events ORDER BY project",
+        "refresh": 1,
+        "current": { "selected": true, "text": "default", "value": "default" },
+        "hide": 0
+      },
+      {
         "name": "limit",
         "type": "constant",
         "label": "Row Limit",
@@ -29,7 +39,7 @@
       "targets": [
         {
           "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
-          "rawSql": "SELECT COUNT(*) as value FROM raw_events WHERE topic = 'rtmh.logs'",
+          "rawSql": "SELECT COUNT(*) as value FROM raw_events WHERE topic = 'rtmh.logs' AND project = '${project}'",
           "format": "table",
           "rawQuery": true,
           "refId": "A"
@@ -50,7 +60,7 @@
       "targets": [
         {
           "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
-          "rawSql": "SELECT COUNT(*) as value FROM raw_events WHERE topic = 'rtmh.metrics'",
+          "rawSql": "SELECT COUNT(*) as value FROM raw_events WHERE topic = 'rtmh.metrics' AND project = '${project}'",
           "format": "table",
           "rawQuery": true,
           "refId": "A"
@@ -71,7 +81,7 @@
       "targets": [
         {
           "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
-          "rawSql": "SELECT COUNT(*) as value FROM raw_events WHERE topic = 'rtmh.events'",
+          "rawSql": "SELECT COUNT(*) as value FROM raw_events WHERE topic = 'rtmh.events' AND project = '${project}'",
           "format": "table",
           "rawQuery": true,
           "refId": "A"
@@ -92,7 +102,7 @@
       "targets": [
         {
           "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
-          "rawSql": "SELECT data->>'level' as level, COUNT(*) as count FROM raw_events WHERE topic = 'rtmh.logs' GROUP BY data->>'level' ORDER BY count DESC",
+          "rawSql": "SELECT data->>'level' as level, COUNT(*) as count FROM raw_events WHERE topic = 'rtmh.logs' AND project = '${project}' GROUP BY data->>'level' ORDER BY count DESC",
           "format": "table",
           "rawQuery": true,
           "refId": "A"
@@ -107,7 +117,7 @@
       "targets": [
         {
           "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
-          "rawSql": "SELECT created_at, data->>'level' as level, data->>'msg' as message, data->>'service' as service FROM raw_events WHERE topic = 'rtmh.logs' ORDER BY created_at DESC LIMIT ${limit}",
+          "rawSql": "SELECT created_at, data->>'level' as level, data->>'msg' as message, data->>'service' as service FROM raw_events WHERE topic = 'rtmh.logs' AND project = '${project}' ORDER BY created_at DESC LIMIT ${limit}",
           "format": "table",
           "rawQuery": true,
           "refId": "A"
@@ -122,7 +132,7 @@
       "targets": [
         {
           "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
-          "rawSql": "SELECT created_at, data->>'response_time' as response_time, data->>'status_code' as status_code, data->>'endpoint' as endpoint FROM raw_events WHERE topic = 'rtmh.metrics' ORDER BY created_at DESC LIMIT ${limit}",
+          "rawSql": "SELECT created_at, data->>'response_time' as response_time, data->>'status_code' as status_code, data->>'endpoint' as endpoint FROM raw_events WHERE topic = 'rtmh.metrics' AND project = '${project}' ORDER BY created_at DESC LIMIT ${limit}",
           "format": "table",
           "rawQuery": true,
           "refId": "A"
@@ -137,7 +147,7 @@
       "targets": [
         {
           "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
-          "rawSql": "SELECT created_at, data->>'type' AS type, data->>'service' AS service, data->>'environment' AS environment, data->>'message' AS message FROM raw_events WHERE topic = 'rtmh.events' ORDER BY created_at DESC LIMIT ${limit}",
+          "rawSql": "SELECT created_at, data->>'type' AS type, data->>'service' AS service, data->>'environment' AS environment, data->>'message' AS message FROM raw_events WHERE topic = 'rtmh.events' AND project = '${project}' ORDER BY created_at DESC LIMIT ${limit}",
           "format": "table",
           "rawQuery": true,
           "refId": "A"
@@ -152,7 +162,7 @@
       "targets": [
         {
           "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
-          "rawSql": "SELECT topic, COUNT(*) as total_events, MIN(created_at) as first_event, MAX(created_at) as latest_event FROM raw_events GROUP BY topic ORDER BY total_events DESC",
+          "rawSql": "SELECT topic, COUNT(*) as total_events, MIN(created_at) as first_event, MAX(created_at) as latest_event FROM raw_events WHERE project = '${project}' GROUP BY topic ORDER BY total_events DESC",
           "format": "table",
           "rawQuery": true,
           "refId": "A"
@@ -167,7 +177,7 @@
       "targets": [
         {
           "datasource": {"type": "postgres", "uid": "rt-monitoring-datasource"},
-          "rawSql": "SELECT created_at, data->>'level' as level, data->>'service' as service, data->>'host' as host, data->>'msg' as message FROM raw_events WHERE topic = 'rtmh.logs' AND created_at BETWEEN $__timeFrom() AND $__timeTo() ORDER BY created_at DESC LIMIT 500",
+          "rawSql": "SELECT created_at, data->>'level' as level, data->>'service' as service, data->>'host' as host, data->>'msg' as message FROM raw_events WHERE topic = 'rtmh.logs' AND project = '${project}' AND created_at BETWEEN $__timeFrom() AND $__timeTo() ORDER BY created_at DESC LIMIT 500",
           "format": "table",
           "rawQuery": true,
           "refId": "A"

@@ -9,10 +9,14 @@ function createMessagesRouter({ producerClient, logger, config } = {}) {
     events: config.EVENTS_TOPIC || 'rtmh.events',
   };
 
-  // lightweight validator: ensure body has 'value'
-  function requireValue(req, res, next) {
+
+  // validator: ensure body has 'value' and 'project'
+  function requireValueAndProject(req, res, next) {
     if (!req.body || typeof req.body.value === 'undefined') {
       return res.status(400).json({ error: 'body must include `value`' });
+    }
+    if (!req.body.project || typeof req.body.project !== 'string' || !req.body.project.trim()) {
+      return res.status(400).json({ error: 'body must include non-empty `project` (string)'});
     }
     return next();
   }
@@ -24,7 +28,10 @@ function createMessagesRouter({ producerClient, logger, config } = {}) {
     try {
       const key = req.body.key;
       const value = req.body.value;
-      await producerClient.send({ topic, key, value });
+      const project = req.body.project;
+      // Wrap value with project field for downstream consumers
+      const messageValue = typeof value === 'object' ? { ...value, project } : { value, project };
+      await producerClient.send({ topic, key, value: messageValue });
       return res.status(202).json({ ok: true });
     } catch (err) {
       logger.error({ err: err && err.message }, 'Failed to send message');
@@ -32,12 +39,13 @@ function createMessagesRouter({ producerClient, logger, config } = {}) {
     }
   }
 
-  router.post('/logs', requireValue, async (req, res) => sendOrFail(req, res, topics.logs));
-  router.post('/metrics', requireValue, async (req, res) => sendOrFail(req, res, topics.metrics));
-  router.post('/events', requireValue, async (req, res) => sendOrFail(req, res, topics.events));
+  router.post('/logs', requireValueAndProject, async (req, res) => sendOrFail(req, res, topics.logs));
+  router.post('/metrics', requireValueAndProject, async (req, res) => sendOrFail(req, res, topics.metrics));
+  router.post('/events', requireValueAndProject, async (req, res) => sendOrFail(req, res, topics.events));
 
-  // Keep generic produce route as fallback
-  router.post('/produce', async (req, res) => {
+
+  // Generic produce route: require topic, value, and project
+  router.post('/produce', requireValueAndProject, async (req, res) => {
     const { topic } = req.body || {};
     if (!topic) return res.status(400).json({ error: 'topic required' });
     return sendOrFail(req, res, topic);

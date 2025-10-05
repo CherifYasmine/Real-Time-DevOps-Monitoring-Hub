@@ -6,9 +6,9 @@ This directory contains the database schema and migration scripts for the Real-T
 
 The database stores:
 
-- **`raw_events`** - All incoming messages from Kafka topics (logs, metrics, events)
-- **`metrics_agg`** - Computed aggregations from sliding window analysis  
-- **`incidents`** - Detected incidents and their lifecycle status
+- **`raw_events`** - All incoming messages from Kafka topics (logs, metrics, events), now includes a `project` field for project-based isolation
+- **`metrics_agg`** - Computed aggregations from sliding window analysis, includes `project` field
+- **`incidents`** - Detected incidents and their lifecycle status, includes `project` field
 - **`alert_rules`** - Configuration for alerting rules and thresholds
 - **`alert_notifications`** - Tracks notification delivery status
 
@@ -87,8 +87,9 @@ export POSTGRES_URL="postgres://rtuser:rtpass@localhost:5432/rt_monitoring"
 
 Migrations are applied in alphabetical order:
 
-- `001_initial_schema.sql` - Creates all tables, indexes, and constraints
+- `001_initial_schema.sql` - Creates all tables, indexes, and constraints (including `project` field)
 - `002_sample_data.sql` - Inserts sample alert rules and test data
+- `002_backfill_project.sql` - Sets the `project` field to 'default' for all existing rows after schema change
 
 ## Database Setup (Docker Compose)
 
@@ -173,16 +174,19 @@ docker logs rtmh_postgres
 
 ### raw_events
 - Stores all Kafka messages with JSONB data
-- Indexed by topic and timestamp
+- Includes a `project` field for project-based isolation
+- Indexed by topic, project, and timestamp
 - GIN index on log level for fast log queries
 
 ### metrics_agg  
 - Stores sliding window aggregations
-- Unique constraint on (window_key, metric_type, window_start)
+- Includes a `project` field for project-based isolation
+- Unique constraint on (project, window_key, metric_type, window_start)
 - Automatic updated_at timestamp trigger
 
 ### incidents
 - UUID primary keys for external API compatibility
+- Includes a `project` field for project-based isolation
 - Status workflow: open → investigating → resolved/closed
 - Severity levels: low, medium, high, critical
 - Metadata stored as JSONB for flexibility

@@ -42,10 +42,13 @@ Message endpoints
 - `POST /events` → publishes to `EVENTS_TOPIC` (default: `rtmh.events`).
 - `POST /produce` → generic: expects `{ topic, value, key? }`.
 
-All message endpoints expect JSON with a top-level `value` field. Example body:
+All message endpoints now require a top-level `project` field (string) in addition to the `value` field. Example body:
 
 ```json
-{ "value": { "msg": "hello", "time": 123 } }
+{
+  "project": "my_project",
+  "value": { "msg": "hello", "time": 123 }
+}
 ```
 
 Responses
@@ -61,7 +64,7 @@ Post a log (dedicated route):
 ```bash
 curl -X POST http://localhost:4000/logs \
   -H "Content-Type: application/json" \
-  -d '{"value":{"level":"info","msg":"hello"}}' -i
+  -d '{"project":"my_project","value":{"level":"info","msg":"hello"}}' -i
 ```
 
 Fallback generic produce:
@@ -69,7 +72,7 @@ Fallback generic produce:
 ```bash
 curl -X POST http://localhost:4000/produce \
   -H "Content-Type: application/json" \
-  -d '{"topic":"rtmh.logs","value":{"msg":"via produce"}}' -i
+  -d '{"topic":"rtmh.logs","project":"my_project","value":{"msg":"via produce"}}' -i
 ```
 
 Verify delivery with Kafka console consumer (inside Kafka container):
@@ -90,11 +93,7 @@ npx jest --runInBand
 
 Design notes
 
-- The HTTP server starts immediately so orchestration sees the service as running even while Kafka warms up. Use `/ready` for readiness checks.
-- `producerClient.connectWithRetry()` performs configurable retries with exponential backoff and emits `ready` or `failed` events.
-- The code is structured for easy extension: add routes in `src/routes` and swap validation/middleware in `src/server.js`.
 
-Next improvements you might want:
-- Add schema validation for payloads (Ajv or Joi).
+- All message endpoints require a `project` field for project-based data isolation. This field is included in all Kafka messages and stored in the database for filtering and multi-project support.
 - Expose `/metrics` (Prometheus) and graceful request draining.
 - Add a Dockerfile and k8s probe manifests.

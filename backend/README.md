@@ -1,11 +1,11 @@
 ## Example Flow
 
-1. Producer sends log: `POST /logs {"value": {"level": "error", "msg": "API timeout"}}`
+1. Producer sends log: `POST /logs {"project": "my_project", "value": {"level": "error", "msg": "API timeout"}}`
 2. Processor receives message from `rtmh.logs` topic
-3. Stores raw log in `raw_events` table
+3. Stores raw log in `raw_events` table (with project field)
 4. Adds to sliding window for error rate calculation
-5. If error rate > 5%, creates incident in `incidents` table
-6. Every 30s, stores aggregated error rate in `metrics_agg` table
+5. If error rate > 5%, creates incident in `incidents` table (with project field)
+6. Every 30s, stores aggregated error rate in `metrics_agg` table (with project field)
 
 ## Testing
 
@@ -39,6 +39,7 @@
    curl -X POST http://localhost:4000/logs \
      -H "Content-Type: application/json" \
      -d '{
+    "project": "my_project",
     "value": {
       "level": "error",
       "msg": "Payment processing failed",
@@ -54,27 +55,27 @@
    for i in {1..15}; do
      curl -X POST http://localhost:4000/logs \
        -H "Content-Type: application/json" \
-       -d '{"value":{"level":"error","msg":"Database connection failed","service":"api"}}'
+       -d '{"project":"my_project","value":{"level":"error","msg":"Database connection failed","service":"api"}}'
      sleep 0.5
    done
    
    # Send metrics
-   curl -s -X POST http://localhost:4000/metrics -H "Content-Type: application/json" -d '{"value": {"response_time": 850, "endpoint": "/api/orders", "status_code": 500}}'
+   curl -s -X POST http://localhost:4000/metrics -H "Content-Type: application/json" -d '{"project":"my_project","value": {"response_time": 850, "endpoint": "/api/orders", "status_code": 500}}'
    
    # Send events
    curl -X POST http://localhost:4000/events \
      -H "Content-Type: application/json" \
-     -d '{"value":{"type":"deployment","service":"api","version":"v1.2.3"}}'
+     -d '{"project":"my_project","value":{"type":"deployment","service":"api","version":"v1.2.3"}}'
    ```
 
 5. **Verify processing worked:**
    ```bash
    # Check raw events were stored
    docker exec rtmh_postgres psql -U rtuser -d rt_monitoring \
-    -c "SELECT topic, data->>'level' as level, data->>'msg' as msg, created_at FROM raw_events ORDER BY created_at DESC LIMIT 5;"
+    -c "SELECT project, topic, data->>'level' as level, data->>'msg' as msg, created_at FROM raw_events ORDER BY created_at DESC LIMIT 5;"
 
    docker exec rtmh_postgres psql -U rtuser -d rt_monitoring \
-    -c "SELECT topic, jsonb_pretty(data) as log_data, created_at FROM raw_events ORDER BY created_at DESC LIMIT 5;"
+    -c "SELECT project, topic, jsonb_pretty(data) as log_data, created_at FROM raw_events ORDER BY created_at DESC LIMIT 5;"
    
    # Check if incident was created (should happen after ~15 error logs)
    docker exec rtmh_postgres psql -U rtuser -d rt_monitoring \

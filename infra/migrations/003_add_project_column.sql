@@ -1,0 +1,3 @@
+ALTER TABLE raw_events ADD COLUMN project VARCHAR(100);
+ALTER TABLE metrics_agg ADD COLUMN project VARCHAR(100);
+ALTER TABLE incidents ADD COLUMN project VARCHAR(100);

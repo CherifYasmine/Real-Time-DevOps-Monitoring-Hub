@@ -59,11 +59,12 @@ class RealTimeProcessor {
 
   async processLogMessage(message) {
     const { value, timestamp } = message;
-    
+    const project = value.project || 'default';
     try {
       // Store raw log
       await this.db.storeRawEvent({
         topic: 'rtmh.logs',
+        project,
         data: value,
         timestamp: new Date(parseInt(timestamp))
       });
@@ -80,7 +81,7 @@ class RealTimeProcessor {
 
       // Create incident if error rate is too high (with minimum sample size)
       if (errorRate > this.errorRateThreshold && logCount >= 10) {
-        await this.handleErrorRateIncident(errorRate, logCount);
+        await this.handleErrorRateIncident(errorRate, logCount, project);
       }
 
       this.logger.debug({ 
@@ -96,11 +97,12 @@ class RealTimeProcessor {
 
   async processMetricsMessage(message) {
     const { value, timestamp } = message;
-    
+    const project = value.project || 'default';
     try {
       // Store raw metrics
       await this.db.storeRawEvent({
         topic: 'rtmh.metrics',
+        project,
         data: value,
         timestamp: new Date(parseInt(timestamp))
       });
@@ -124,11 +126,12 @@ class RealTimeProcessor {
 
   async processEventMessage(message) {
     const { value, timestamp } = message;
-    
+    const project = value.project || 'default';
     try {
       // Store raw event
       await this.db.storeRawEvent({
         topic: 'rtmh.events',
+        project,
         data: value,
         timestamp: new Date(parseInt(timestamp))
       });
@@ -148,7 +151,7 @@ class RealTimeProcessor {
 
   async handleErrorRateIncident(errorRate, logCount) {
     const title = `High Error Rate Detected: ${(errorRate * 100).toFixed(1)}%`;
-    
+    const project = arguments.length > 2 ? arguments[2] : 'default';
     // Check for recent similar incident to avoid spam
     const recentIncident = await this.db.findRecentIncident({
       source: 'error_rate_monitor',
@@ -158,6 +161,7 @@ class RealTimeProcessor {
 
     if (!recentIncident) {
       await this.db.createIncident({
+        project,
         title,
         description: `Error rate of ${(errorRate * 100).toFixed(2)}% detected over ${logCount} log messages in the last ${this.windowSizeMs / 1000}s`,
         severity: errorRate > this.errorRateThreshold * 2 ? 'high' : 'medium',
@@ -170,7 +174,7 @@ class RealTimeProcessor {
         }
       });
 
-      this.logger.warn({ errorRate, logCount, threshold: this.errorRateThreshold }, 'Created error rate incident');
+      this.logger.warn({ errorRate, logCount, threshold: this.errorRateThreshold, project }, 'Created error rate incident');
     }
   }
 
@@ -191,12 +195,15 @@ class RealTimeProcessor {
       const now = new Date();
       const windowStart = new Date(now.getTime() - this.windowSizeMs);
 
+      // For demo, use 'default' project for aggregations (can be extended to per-project windows)
+      const project = 'default';
       // Store log error rate
       const errorRate = this.aggregator.calculateErrorRate('logs_error_rate');
       const logCount = this.aggregator.calculateCount('logs_error_rate');
       
       if (logCount > 0) {
         await this.db.storeMetricsAggregation({
+          project,
           windowKey: 'logs_error_rate',
           metricType: 'error_rate',
           value: errorRate,
@@ -210,6 +217,7 @@ class RealTimeProcessor {
       const eventCount = this.aggregator.calculateCount('events_frequency');
       if (eventCount > 0) {
         await this.db.storeMetricsAggregation({
+          project,
           windowKey: 'events_frequency',
           metricType: 'event_count',
           value: eventCount,

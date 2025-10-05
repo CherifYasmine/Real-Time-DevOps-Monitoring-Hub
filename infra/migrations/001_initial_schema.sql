@@ -8,6 +8,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE raw_events (
     id BIGSERIAL PRIMARY KEY,
     topic VARCHAR(255) NOT NULL,
+    project VARCHAR(100) NOT NULL,
     data JSONB NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
@@ -17,12 +18,14 @@ CREATE TABLE raw_events (
 
 -- Create indexes on raw_events
 CREATE INDEX idx_raw_events_topic ON raw_events(topic);
+CREATE INDEX idx_raw_events_project ON raw_events(project);
 CREATE INDEX idx_raw_events_created_at ON raw_events(created_at);
 CREATE INDEX idx_raw_events_data_level ON raw_events ((data->>'level')) WHERE topic = 'rtmh.logs';
 
 -- Metrics aggregations table - stores computed sliding window metrics  
 CREATE TABLE metrics_agg (
     id BIGSERIAL PRIMARY KEY,
+    project VARCHAR(100) NOT NULL,
     window_key VARCHAR(255) NOT NULL,
     metric_type VARCHAR(100) NOT NULL,
     value DOUBLE PRECISION NOT NULL,
@@ -34,10 +37,11 @@ CREATE TABLE metrics_agg (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     
     -- Ensure unique metrics per window
-    UNIQUE (window_key, metric_type, window_start)
+    UNIQUE (project, window_key, metric_type, window_start)
 );
 
 -- Create indexes on metrics_agg
+CREATE INDEX idx_metrics_agg_project ON metrics_agg(project);
 CREATE INDEX idx_metrics_agg_window_key ON metrics_agg(window_key);
 CREATE INDEX idx_metrics_agg_metric_type ON metrics_agg(metric_type);
 CREATE INDEX idx_metrics_agg_window_start ON metrics_agg(window_start);
@@ -46,6 +50,7 @@ CREATE INDEX idx_metrics_agg_created_at ON metrics_agg(created_at);
 -- Incidents table - stores detected issues and alerts
 CREATE TABLE incidents (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    project VARCHAR(100) NOT NULL,
     title VARCHAR(500) NOT NULL,
     description TEXT,
     severity VARCHAR(20) DEFAULT 'medium' CHECK (severity IN ('low', 'medium', 'high', 'critical')),
@@ -61,6 +66,7 @@ CREATE TABLE incidents (
 CREATE INDEX idx_incidents_status ON incidents(status);
 CREATE INDEX idx_incidents_severity ON incidents(severity);
 CREATE INDEX idx_incidents_source ON incidents(source);
+CREATE INDEX idx_incidents_project ON incidents(project);
 CREATE INDEX idx_incidents_created_at ON incidents(created_at);
 
 -- Alerts table - for future alerting rules configuration

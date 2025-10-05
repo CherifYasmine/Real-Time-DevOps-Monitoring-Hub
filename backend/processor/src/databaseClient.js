@@ -29,24 +29,24 @@ class DatabaseClient {
   }
 
   // Store raw event (logs, metrics, events)
-  async storeRawEvent({ topic, data, timestamp = new Date() }) {
+  async storeRawEvent({ topic, project, data, timestamp = new Date() }) {
     const query = `
-      INSERT INTO raw_events (topic, data, created_at)
-      VALUES ($1, $2, $3)
+      INSERT INTO raw_events (topic, project, data, created_at)
+      VALUES ($1, $2, $3, $4)
       RETURNING id
     `;
-    
     try {
-      const result = await this.pool.query(query, [topic, JSON.stringify(data), timestamp]);
+      const result = await this.pool.query(query, [topic, project, JSON.stringify(data), timestamp]);
       return result.rows[0]?.id;
     } catch (err) {
-      this.logger.error({ err: err.message, topic }, 'Failed to store raw event');
+      this.logger.error({ err: err.message, topic, project }, 'Failed to store raw event');
       throw err;
     }
   }
 
   // Store aggregated metrics
   async storeMetricsAggregation({ 
+    project,
     windowKey, 
     metricType, 
     value, 
@@ -56,15 +56,15 @@ class DatabaseClient {
     metadata = {}
   }) {
     const query = `
-      INSERT INTO metrics_agg (window_key, metric_type, value, count, window_start, window_end, metadata, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-      ON CONFLICT (window_key, metric_type, window_start) 
+      INSERT INTO metrics_agg (project, window_key, metric_type, value, count, window_start, window_end, metadata, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+      ON CONFLICT (project, window_key, metric_type, window_start) 
       DO UPDATE SET value = EXCLUDED.value, count = EXCLUDED.count, metadata = EXCLUDED.metadata, updated_at = NOW()
       RETURNING id
     `;
-    
     try {
       const result = await this.pool.query(query, [
+        project,
         windowKey, 
         metricType, 
         value, 
@@ -75,13 +75,14 @@ class DatabaseClient {
       ]);
       return result.rows[0]?.id;
     } catch (err) {
-      this.logger.error({ err: err.message, windowKey, metricType }, 'Failed to store metrics aggregation');
+      this.logger.error({ err: err.message, project, windowKey, metricType }, 'Failed to store metrics aggregation');
       throw err;
     }
   }
 
   // Create incident when thresholds are breached
   async createIncident({ 
+    project,
     title, 
     description, 
     severity = 'medium', 
@@ -90,13 +91,13 @@ class DatabaseClient {
     status = 'open'
   }) {
     const query = `
-      INSERT INTO incidents (title, description, severity, source, metadata, status, created_at)
-      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      INSERT INTO incidents (project, title, description, severity, source, metadata, status, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
       RETURNING id
     `;
-    
     try {
       const result = await this.pool.query(query, [
+        project,
         title, 
         description, 
         severity, 
@@ -106,7 +107,7 @@ class DatabaseClient {
       ]);
       return result.rows[0]?.id;
     } catch (err) {
-      this.logger.error({ err: err.message, title }, 'Failed to create incident');
+      this.logger.error({ err: err.message, project, title }, 'Failed to create incident');
       throw err;
     }
   }
